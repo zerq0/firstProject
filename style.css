@@ -17,3 +17,23 @@ header .nav-buttons {
     display: flex;
     gap: 10px;
 }
+header button {
+    background-color: #0056b3;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+header button:hover {
+    background-color: #004494;
+}
+
+.content {
+    padding: 20px;
+}
+
+.hidden {
+    display: none;
+}
