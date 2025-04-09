@@ -1,40 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DiabetEasy</title>
-</head>
-<body>
-    <header>
-        <h1>Diabetes Management</h1>
-        <div class="nav-buttons">
-            <button onclick="showPage('main')">Главная</button>
-            <button onclick="showPage('calculator')">Калькулятор ХЕ</button>
-            <button onclick="showPage('symptoms')">Симптомы и профилактика</button>
-            <button onclick="showPage('sugar')">Учет сахара в крови</button>
-        </div>
-    </header>
-
-    <div id="content" class="content">
-        <div id="main" class="page">
-            <h2>Добро пожаловать!</h2>
-            <p>Это приложение для помощи диабетикам. Выберите нужный раздел в меню выше.</p>
-        </div>
-        <div id="calculator" class="page hidden">
-            <h2>Калькулятор ХЕ</h2>
-            <p>Здесь вы можете рассчитать количество хлебных единиц для вашего рациона.</p>
-        </div>
-        <div id="symptoms" class="page hidden">
-            <h2>Симптомы и профилактика</h2>
-            <p>Здесь вы найдете информацию о симптомах диабета и способах их профилактики.</p>
-        </div>
-        <div id="sugar" class="page hidden">
-            <h2>Учет сахара в крови</h2>
-            <p>Здесь вы можете вести учет уровня сахара в крови.</p>
-            
-        </div>
-    </div>
-</body>
-<script src="script.js"></script>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite + React</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
