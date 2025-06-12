@@ -146,3 +146,42 @@ input:focus {
   margin-top: 16px;
   font-size: 1.1rem;
 }
+.sugar-input {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sugar-input input {
+  flex: 1;
+  padding: 6px 10px;
+}
+.sugar-input button {
+  padding: 6px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.sugar-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+.sugar-table th,
+.sugar-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+}
+.sugar-table th {
+  background: #f5f5f5;
+}
+
+.sugar-page .remove-btn {
+  background: transparent;
+  border: none;
+  color: #e74c3c;
+  font-weight: bold;
+  cursor: pointer;
+}
