@@ -4,6 +4,29 @@ import './App.css';
 
 export default function App() {
   const [page, setPage] = useState('main');
+  const [sugarEntries, setSugarEntries] = useState(() => {
+  const saved = localStorage.getItem('sugarEntries');
+  return saved ? JSON.parse(saved) : [];
+});
+const [sugarValue, setSugarValue] = useState('');
+useEffect(() => {
+  localStorage.setItem('sugarEntries', JSON.stringify(sugarEntries));
+}, [sugarEntries]);
+
+function addSugarEntry() {
+  if (!sugarValue) return;
+  const timestamp = new Date().toLocaleString(); 
+  setSugarEntries([
+    ...sugarEntries,
+    { id: Date.now(), timestamp, value: sugarValue }
+  ]);
+  setSugarValue('');
+}
+
+function removeSugarEntry(id) {
+  setSugarEntries(sugarEntries.filter(e => e.id !== id));
+}
+
   const [items, setItems] = useState([
     { id: Date.now(), name: '', weight: '', carbs100g: 0, fiber100g: 0 }
   ]);
@@ -130,19 +153,7 @@ export default function App() {
     </div>
   );
 }
-function addSugarEntry() {
-  if (!sugarValue) return;
-  const timestamp = new Date().toLocaleString(); 
-  setSugarEntries([
-    ...sugarEntries,
-    { id: Date.now(), timestamp, value: sugarValue }
-  ]);
-  setSugarValue('');
-}
 
-function removeSugarEntry(id) {
-  setSugarEntries(sugarEntries.filter(e => e.id !== id));
-}
 
 
 function Row({ item, updateItem, removeItem }) {
