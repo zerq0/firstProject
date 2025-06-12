@@ -83,11 +83,49 @@ export default function App() {
         )}
 
         {page === 'sugar' && (
-          <div className="page">
-            <h2>Учет сахара в крови</h2>
-            <p>Ведение истории уровня сахара в крови.</p>
-          </div>
-        )}
+  <div className="page sugar-page">
+    <h2>Учет сахара в крови</h2>
+
+    {/* ввод */}
+    <div className="sugar-input">
+      <input
+        type="number"
+        value={sugarValue}
+        onChange={e => setSugarValue(e.target.value)}
+        placeholder="Уровень сахара"
+      />
+      <button onClick={addSugarEntry}>Добавить</button>
+    </div>
+
+    {/* таблица */}
+    <table className="sugar-table">
+      <thead>
+        <tr>
+          <th>Дата и время</th>
+          <th>Показатель</th>
+          <th>Действие</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sugarEntries.map(entry => (
+          <tr key={entry.id}>
+            <td>{entry.timestamp}</td>
+            <td>{entry.value}</td>
+            <td>
+              <button
+                className="remove-btn"
+                onClick={() => removeSugarEntry(entry.id)}
+              >
+                ×
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
       </div>
     </div>
   );
