@@ -20,7 +20,7 @@ export default function App() {
       prev.map(it => (it.id === id ? { ...it, ...changes } : it))
     );
 
-  // сумма всех ХЕ
+  
   const totalBU = Math.round(
     items.reduce((sum, it) => {
       const bu = calculateBreadUnits(
@@ -130,8 +130,21 @@ export default function App() {
     </div>
   );
 }
+function addSugarEntry() {
+  if (!sugarValue) return;
+  const timestamp = new Date().toLocaleString(); 
+  setSugarEntries([
+    ...sugarEntries,
+    { id: Date.now(), timestamp, value: sugarValue }
+  ]);
+  setSugarValue('');
+}
 
-// Компонент одной строки с автокомплитом
+function removeSugarEntry(id) {
+  setSugarEntries(sugarEntries.filter(e => e.id !== id));
+}
+
+
 function Row({ item, updateItem, removeItem }) {
   const [query, setQuery] = useState(item.name);
   const [suggestions, setSuggestions] = useState([]);
