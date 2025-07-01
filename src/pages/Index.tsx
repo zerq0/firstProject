@@ -1,4 +1,3 @@
-// src/pages/Index.tsx
 import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -37,24 +36,26 @@ export default function Index() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-16">
-        <header className="text-center space-y-4">
-          <Heart className="h-16 w-16 text-blue-600 mx-auto" />
-          <h1 className="text-5xl font-bold text-blue-900">
-            Добро пожаловать в DiabetesCare
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-12">
+      <div className="max-w-xl sm:max-w-3xl lg:max-w-5xl mx-auto space-y-16">
+        {/* Хедер */}
+        <div className="text-center mb-6">
+          <Heart className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-blue-900 mb-2">
+            Добро пожаловать в DiabetEasy
           </h1>
-          <p className="text-xl text-blue-700 max-w-3xl mx-auto">
-            Ваш помощник в управлении диабетом: учет сахара, расчёт дозы
+          <p className="text-base sm:text-lg text-blue-700">
+            Ваш помощник в управлении диабетом: учёт сахара, расчёт дозы
             инсулина и отслеживание симптомов.
           </p>
-        </header>
+        </div>
 
-        <section className="grid md:grid-cols-3 gap-6">
+        {/* Статистика */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {stats.map((s, i) => {
             const Icon = s.icon;
             return (
-              <Card key={i} className="text-center border-blue-200">
+              <Card key={i} className="p-4 sm:p-6 border-blue-200 text-center">
                 <CardContent>
                   <Icon className="h-12 w-12 text-blue-600 mx-auto mb-2" />
                   <div className="text-3xl font-bold text-blue-900">{s.value}</div>
@@ -65,18 +66,19 @@ export default function Index() {
           })}
         </section>
 
-        <section className="grid md:grid-cols-3 gap-8">
+        {/* Фичи */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           {features.map((f, i) => {
             const Icon = f.icon;
             return (
-              <Card key={i} className="border-blue-200">
+              <Card key={i} className="p-4 sm:p-6 border-blue-200">
                 <CardHeader className="text-center">
                   <Icon className={`h-8 w-8 ${f.color} mx-auto mb-2`} />
                   <CardTitle>{f.title}</CardTitle>
                   <CardDescription>{f.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                  <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white">
                     <Link to={f.link}>Перейти</Link>
                   </Button>
                 </CardContent>

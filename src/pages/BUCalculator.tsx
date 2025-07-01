@@ -1,4 +1,3 @@
-// src/pages/BUCalculator.tsx
 import React, { useState, useEffect } from "react";
 import { fetchProductByName } from "../utils/api";
 import { calculateBreadUnits } from "../utils/calc";
@@ -29,24 +28,20 @@ export default function BUCalculator() {
   const [query, setQuery] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // Добавить новую строку
   const addItem = () =>
     setItems((prev) => [
       ...prev,
       { id: Date.now().toString(), name: "", weight: "", carbs100g: 0, fiber100g: 0 },
     ]);
 
-  // Удалить строку
   const removeItem = (id: string) =>
     setItems((prev) => prev.filter((it) => it.id !== id));
 
-  // Обновить одну строку
   const updateItem = (id: string, changes: Partial<Item>) =>
     setItems((prev) =>
       prev.map((it) => (it.id === id ? { ...it, ...changes } : it))
     );
 
-  // Автодополнение
   useEffect(() => {
     if (!query) {
       setSuggestions([]);
@@ -75,25 +70,24 @@ export default function BUCalculator() {
     setSuggestions([]);
   };
 
-  // Суммарные ХЕ
   const totalBU = items.reduce((sum, it) => {
     const w = Number(it.weight) || 0;
     return sum + calculateBreadUnits(w, it.carbs100g, it.fiber100g);
   }, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-blue-50 p-6">
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
-        <div className="flex justify-center mb-4">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-12 bg-gradient-to-b from-green-50 to-blue-50 min-h-screen">
+      <div className="max-w-xl sm:max-w-3xl lg:max-w-4xl mx-auto bg-white p-4 sm:p-6 rounded-lg shadow space-y-6">
+        <div className="flex items-center justify-center gap-2 mb-4">
           <Calculator className="h-12 w-12 text-green-600" />
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-900">
+            Калькулятор хлебных единиц
+          </h1>
         </div>
-        <h1 className="text-2xl font-bold text-center mb-4">
-          Калькулятор хлебных единиц
-        </h1>
 
         {items.map((item) => (
-          <div key={item.id} className="item-row mb-4">
-            <div className="search-wrapper">
+          <div key={item.id} className="flex flex-col sm:flex-row items-center gap-2">
+            <div className="flex-1 search-wrapper">
               <Input
                 value={item.name}
                 onChange={(e) => {
@@ -106,10 +100,7 @@ export default function BUCalculator() {
               {suggestions.length > 0 && (
                 <ul className="suggestions">
                   {suggestions.map((p) => (
-                    <li
-                      key={p.code}
-                      onClick={() => selectProduct(p, item.id)}
-                    >
+                    <li key={p.code} onClick={() => selectProduct(p, item.id)}>
                       {p.product_name}
                     </li>
                   ))}
@@ -119,12 +110,12 @@ export default function BUCalculator() {
 
             <Input
               value={item.weight}
-              onChange={(e) =>
-                updateItem(item.id, { weight: e.target.value })
-              }
-              placeholder="Вес в граммах"
+              onChange={(e) => updateItem(item.id, { weight: e.target.value })}
+              placeholder="Вес (г)"
               type="number"
+              className="w-24"
             />
+
             <Button
               onClick={() => removeItem(item.id)}
               className="remove-btn"
@@ -138,7 +129,7 @@ export default function BUCalculator() {
           + Добавить продукт
         </Button>
 
-        <div className="total mt-6 text-lg">
+        <div className="total mt-6 text-lg text-right">
           Итого ХЕ: <strong>{Math.round(totalBU * 2) / 2}</strong>
         </div>
       </div>

@@ -1,5 +1,5 @@
 // src/pages/SugarInput.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -22,24 +22,41 @@ import { useToast } from "../hooks/use-toast";
 
 interface Reading {
   id: string;
-  glucose: number; // в mg/dL
+  glucose: number;  // уже в ммоль/л
   time: string;
   type: string;
   notes: string;
 }
 
 export default function SugarInput() {
-  const [readings, setReadings] = useState<Reading[]>([]);
+  // 1) Загружаем из localStorage
+  const [readings, setReadings] = useState<Reading[]>(() => {
+    const saved = localStorage.getItem("sugarReadings");
+    return saved ? JSON.parse(saved) : [];
+  });
+
   const [glucose, setGlucose] = useState("");
   const [type, setType] = useState("");
   const [notes, setNotes] = useState("");
   const { toast } = useToast();
 
-  const toMmol = (mg: number) => Math.round((mg / 18) * 10) / 10;
+  // 2) Сохраняем в localStorage при каждом изменении readings
+  useEffect(() => {
+    localStorage.setItem("sugarReadings", JSON.stringify(readings));
+  }, [readings]);
+
+  // Функция для расчёта среднего
+  const avgMmol =
+    readings.length > 0
+      ? Math.round(
+          (readings.reduce((sum, r) => sum + r.glucose, 0) / readings.length) *
+            10
+        ) / 10
+      : 0;
 
   const addReading = () => {
-    const mg = parseFloat(glucose);
-    if (isNaN(mg) || mg <= 0 || !type) {
+    const mmol = parseFloat(glucose);
+    if (isNaN(mmol) || mmol <= 0 || !type) {
       toast({
         title: "Ошибка ввода",
         description: "Введите корректный уровень глюкозы и выберите тип замера.",
@@ -49,7 +66,7 @@ export default function SugarInput() {
     }
     const newR: Reading = {
       id: Date.now().toString(),
-      glucose: mg,
+      glucose: mmol,
       time: new Date().toLocaleString(),
       type,
       notes,
@@ -60,46 +77,36 @@ export default function SugarInput() {
     setNotes("");
     toast({
       title: "Запись добавлена",
-      description: `Уровень ${toMmol(mg)} ммоль/л сохранён.`,
+      description: `Уровень ${mmol} ммоль/л сохранён.`,
     });
   };
 
   const deleteReading = (id: string) => {
     setReadings((r) => r.filter((x) => x.id !== id));
-    toast({
-      title: "Запись удалена",
-      description: "Уровень глюкозы был удалён.",
-    });
+    toast({ title: "Запись удалена" });
   };
 
-  const avgMmol =
-    readings.length > 0
-      ? Math.round(
-          (readings.reduce((sum, r) => sum + toMmol(r.glucose), 0) /
-            readings.length) *
-            10
-        ) / 10
-      : 0;
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-6">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <header className="text-center space-y-2">
-          <TrendingUp className="h-12 w-12 text-blue-600 mx-auto" />
-          <h1 className="text-3xl font-bold">Учёт сахара в крови</h1>
-          <p className="text-blue-700">
+    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-12 bg-gradient-to-b from-blue-50 to-green-50 min-h-screen">
+      <div className="max-w-xl sm:max-w-4xl lg:max-w-6xl mx-auto space-y-8">
+        {/* Заголовок */}
+        <div className="text-center mb-6">
+          <TrendingUp className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-blue-900 mb-2">
+            Учёт сахара в крови
+          </h1>
+          <p className="text-base sm:text-lg text-blue-700">
             Записывайте и отслеживайте уровень глюкозы в ммоль/л.
           </p>
-        </header>
+        </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Сетка */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {/* Форма добавления */}
-          <Card>
+          <Card className="p-4 sm:p-6">
             <CardHeader>
               <CardTitle>Новая запись</CardTitle>
-              <CardDescription>
-                Введите текущий уровень глюкозы
-              </CardDescription>
+              <CardDescription>Введите текущий уровень</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -112,7 +119,6 @@ export default function SugarInput() {
                   onChange={(e) => setGlucose(e.target.value)}
                 />
               </div>
-
               <div>
                 <Label htmlFor="type">Тип замера</Label>
                 <Select value={type} onValueChange={setType}>
@@ -128,7 +134,6 @@ export default function SugarInput() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div>
                 <Label htmlFor="notes">Примечания</Label>
                 <Input
@@ -138,7 +143,6 @@ export default function SugarInput() {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
-
               <Button
                 onClick={addReading}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -150,10 +154,9 @@ export default function SugarInput() {
           </Card>
 
           {/* Статистика */}
-          <Card className="border-green-200">
+          <Card className="p-4 sm:p-6 border-green-200">
             <CardHeader>
               <CardTitle>Статистика</CardTitle>
-              <CardDescription>Ваши данные</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-center">
               <div className="text-2xl font-bold text-green-900">
@@ -167,8 +170,8 @@ export default function SugarInput() {
             </CardContent>
           </Card>
 
-          {/* Список последних записей */}
-          <Card>
+          {/* Последние записи */}
+          <Card className="p-4 sm:p-6">
             <CardHeader>
               <CardTitle>Последние записи</CardTitle>
             </CardHeader>
@@ -182,7 +185,7 @@ export default function SugarInput() {
                   className="flex justify-between items-center border p-3 rounded"
                 >
                   <div>
-                    <div className="font-bold">{toMmol(r.glucose)} ммоль/л</div>
+                    <div className="font-bold">{r.glucose} ммоль/л</div>
                     <div className="text-sm text-gray-600">{r.time}</div>
                     {r.notes && (
                       <div className="text-sm text-gray-700 mt-1">
