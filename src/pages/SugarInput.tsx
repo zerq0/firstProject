@@ -125,7 +125,7 @@ export default function SugarInput() {
                   <SelectTrigger id="type">
                     <SelectValue placeholder="Выберите тип" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg">
                     <SelectItem value="fasting">Натощак</SelectItem>
                     <SelectItem value="before-meal">Перед едой</SelectItem>
                     <SelectItem value="after-meal">После еды</SelectItem>
