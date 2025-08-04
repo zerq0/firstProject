@@ -3,8 +3,8 @@ import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
 } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+import { Input }  from "../components/ui/input";
+import { Label }  from "../components/ui/label";
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "../components/ui/select";
@@ -24,25 +24,26 @@ interface Reading {
 
 export default function SugarInput() {
   const { toast } = useToast();
-  const [session, setSession] = useState<boolean>(false);
+  const [session, setSession] = useState(false);
 
-  // авторизация
+  // статус сессии
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(!!data.session);
     });
-    supabase.auth.onAuthStateChange((_evt, s) => {
+    supabase.auth.onAuthStateChange((_e, s) => {
       setSession(!!s);
     });
   }, []);
 
   const [readings, setReadings] = useState<Reading[]>([]);
-  const [filter,  setFilter]  = useState<string>("");
+  const [filter, setFilter]     = useState<string>("");
+
   const [glucose, setGlucose] = useState("");
   const [type,    setType]    = useState("");
   const [notes,   setNotes]   = useState("");
 
-  // загрузка из Supabase
+  // загрузка списка из Supabase
   useEffect(() => {
     if (!session) return;
     (async () => {
@@ -50,67 +51,60 @@ export default function SugarInput() {
         .from("readings")
         .select("*")
         .order("time", { ascending: false });
-      const readings = (data as Reading[]) || [];
-      if (!error && data) setReadings(data);
+      if (error) {
+        toast({ title: "Ошибка загрузки", description: error.message, variant: "destructive" });
+      } else {
+        setReadings(data as Reading[]);
+      }
     })();
   }, [session]);
 
-  // фильтрованный список
+  // отфильтрованные записи
   const displayed = filter
     ? readings.filter((r) => r.type === filter)
     : readings;
 
-  const avg =
-    readings.length > 0
-      ? Math.round(
-          (readings.reduce((sum, r) => sum + r.glucose, 0) / readings.length) *
-            10
-        ) / 10
-      : 0;
-
+  // добавление новой записи
   const addReading = async () => {
     const mmol = parseFloat(glucose);
     if (isNaN(mmol) || mmol <= 0 || !type) {
-      toast({
-        title: "Ошибка ввода",
-        description: "Введите корректный уровень и выберите тип замера.",
-        variant: "destructive",
-      });
+      toast({ title: "Неверный ввод", description: "Проверьте данные.", variant: "destructive" });
       return;
     }
-    const user = await supabase.auth.getUser();
-    if (!user.data.user) {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) {
       toast({ title: "Нужно войти", variant: "destructive" });
       return;
     }
-    const newR: Reading = {
-      id:      Date.now().toString(),
-      user_id: user.data.user.id,
+    const newR = {
+      user_id: userData.user.id,
       glucose: mmol,
-      time:    new Date().toLocaleString(),
+      time:    new Date().toISOString(),
       type,
       notes,
     };
     const { error } = await supabase.from("readings").insert(newR);
     if (error) {
-      toast({ title: "Ошибка сервера", description: error.message, variant: "destructive" });
+      toast({ title: "Ошибка сохранения", description: error.message, variant: "destructive" });
     } else {
-      setReadings((prev) => [newR, ...prev]);
-      toast({ title: "Сохранено", description: `Уровень ${mmol} ммоль/л добавлен` });
+      setReadings((prev) => [{ ...newR, id: Date.now().toString() }, ...prev]);
       setGlucose(""); setType(""); setNotes("");
+      toast({ title: "Сохранено", description: `Уровень ${mmol} ммоль/л добавлен` });
     }
   };
 
+  // удаление
   const deleteReading = async (id: string) => {
     const { error } = await supabase.from("readings").delete().eq("id", id);
     if (error) {
-      toast({ title: "Ошибка сервера", variant: "destructive" });
+      toast({ title: "Ошибка удаления", variant: "destructive" });
     } else {
       setReadings((r) => r.filter((x) => x.id !== id));
-      toast({ title: "Удалено" });
+      toast({ title: "Запись удалена" });
     }
   };
 
+  // если не залогинились — показываем форму Auth
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -120,19 +114,11 @@ export default function SugarInput() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-12 bg-gradient-to-b from-blue-50 to-green-50 min-h-screen">
+    <div className="px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-blue-50 to-green-50 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Заголовок и фильтр */}
-        <div className="text-center space-y-2">
-          <TrendingUp className="h-12 w-12 text-blue-600 mx-auto" />
-          <h1 className="text-2xl sm:text-4xl font-bold text-blue-900">
-            Учёт сахара в крови
-          </h1>
-          <p className="text-blue-700">Ваши замеры в ммоль/л</p>
-        </div>
-
+        {/* Фильтр */}
         <div className="flex items-center gap-2">
-          <Label className="whitespace-nowrap">Показать:</Label>
+          <Label>Показать:</Label>
           <Select value={filter} onValueChange={setFilter}>
             <SelectTrigger><SelectValue placeholder="Все" /></SelectTrigger>
             <SelectContent className="bg-white border-gray-200 shadow-lg">
@@ -146,7 +132,7 @@ export default function SugarInput() {
           </Select>
         </div>
 
-        {/* Форма */}
+        {/* Форма ввода */}
         <Card className="p-4 sm:p-6">
           <CardHeader>
             <CardTitle>Новая запись</CardTitle>
@@ -158,7 +144,7 @@ export default function SugarInput() {
               <Input
                 id="glucose"
                 type="number"
-                placeholder="Например, 5.6"
+                placeholder="5.6"
                 value={glucose}
                 onChange={(e) => setGlucose(e.target.value)}
               />
@@ -167,14 +153,14 @@ export default function SugarInput() {
               <Label htmlFor="type">Тип замера</Label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger id="type">
-                  <SelectValue placeholder="Выберите тип" />
+                  <SelectValue placeholder="Выберите" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border-gray-200 shadow-lg">
                   <SelectItem value="fasting">Натощак</SelectItem>
                   <SelectItem value="before-meal">Перед едой</SelectItem>
                   <SelectItem value="after-meal">После еды</SelectItem>
                   <SelectItem value="bedtime">Перед сном</SelectItem>
-                  <SelectItem value="random">Произвольно</SelectItem>
+                  <SelectItem value="random">Произвольный</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -182,7 +168,7 @@ export default function SugarInput() {
               <Label htmlFor="notes">Примечания</Label>
               <Input
                 id="notes"
-                placeholder="Можно не заполнять"
+                placeholder="Комментарий"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               />
@@ -191,31 +177,17 @@ export default function SugarInput() {
               onClick={addReading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Сохранить
+              <Plus className="h-4 w-4 mr-2" /> Сохранить
             </Button>
           </CardContent>
         </Card>
 
-        {/* Статистика */}
-        <Card className="p-4 sm:p-6 border-green-200">
-          <CardHeader>
-            <CardTitle>Статистика</CardTitle>
-          </CardHeader>
-          <CardContent className="text-center space-y-2">
-            <div className="text-2xl font-bold text-green-900">{avg} ммоль/л</div>
-            <div>Средний уровень</div>
-            <div className="text-2xl font-bold text-blue-900">{readings.length}</div>
-            <div>Всего записей</div>
-          </CardContent>
-        </Card>
-
-        {/* Последние записи */}
+        {/* Список записей */}
         <Card className="p-4 sm:p-6">
           <CardHeader>
-            <CardTitle>Последние записи</CardTitle>
+            <CardTitle>Записи</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 max-h-96 overflow-y-auto">
+          <CardContent className="space-y-3 max-h-80 overflow-y-auto">
             {displayed.length === 0 ? (
               <div className="text-center text-gray-500">Нет записей</div>
             ) : (
@@ -226,10 +198,8 @@ export default function SugarInput() {
                 >
                   <div>
                     <div className="font-bold">{r.glucose} ммоль/л</div>
-                    <div className="text-sm text-gray-600">{r.time}</div>
-                    {r.notes && (
-                      <div className="text-sm text-gray-700 mt-1">{r.notes}</div>
-                    )}
+                    <div className="text-sm text-gray-600">{new Date(r.time).toLocaleString()}</div>
+                    {r.notes && <div className="text-sm text-gray-700 mt-1">{r.notes}</div>}
                   </div>
                   <Button
                     onClick={() => deleteReading(r.id)}
