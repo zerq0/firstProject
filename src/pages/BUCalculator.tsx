@@ -1,138 +1,110 @@
-import React, { useState, useEffect } from "react";
-import { fetchProductByName } from "../utils/api";
+import React, { useState } from "react";
+import { fetchProductByName, Product } from "../utils/api";
 import { calculateBreadUnits } from "../utils/calc";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Button } from "../components/ui/button";
-import { Calculator } from "lucide-react";
-
-interface Item {
-  id: string;
-  name: string;
-  weight: string;
-  carbs100g: number;
-  fiber100g: number;
-}
 
 export default function BUCalculator() {
-  const [items, setItems] = useState<Item[]>([
-    { id: Date.now().toString(), name: "", weight: "", carbs100g: 0, fiber100g: 0 },
-  ]);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [query, setQuery] = useState<string>("");
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<Product[]>([]);
+  const [selected, setSelected] = useState<Product | null>(null);
+  const [weight, setWeight] = useState("");
+  const [result, setResult] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const addItem = () =>
-    setItems((prev) => [
-      ...prev,
-      { id: Date.now().toString(), name: "", weight: "", carbs100g: 0, fiber100g: 0 },
-    ]);
-
-  const removeItem = (id: string) =>
-    setItems((prev) => prev.filter((it) => it.id !== id));
-
-  const updateItem = (id: string, changes: Partial<Item>) =>
-    setItems((prev) =>
-      prev.map((it) => (it.id === id ? { ...it, ...changes } : it))
-    );
-
-  useEffect(() => {
-    if (!query) {
-      setSuggestions([]);
-      return;
+  const onSearch = async () => {
+    if (!query) return;
+    setLoading(true);
+    try {
+      const prods = await fetchProductByName(query);
+      setSuggestions(prods.slice(0, 10));
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
     }
-    const t = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const p = await fetchProductByName(query);
-        setSuggestions([p]);
-      } catch {
-        setSuggestions([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [query]);
-
-  const selectProduct = (product: any, id: string) => {
-    updateItem(id, {
-      name: product.product_name,
-      carbs100g: product.nutriments.carbohydrates_100g || 0,
-      fiber100g: product.nutriments.fiber_100g || 0,
-    });
-    setSuggestions([]);
   };
 
-  const totalBU = items.reduce((sum, it) => {
-    const w = Number(it.weight) || 0;
-    return sum + calculateBreadUnits(w, it.carbs100g, it.fiber100g);
-  }, 0);
+  const onCalculate = () => {
+    if (!selected || !weight) return;
+    const w = parseFloat(weight);
+    if (isNaN(w) || w <= 0) {
+      alert("Неверный вес");
+      return;
+    }
+    const bu = calculateBreadUnits(w, selected.nutriments.carbohydrates_100g);
+    setResult(bu);
+  };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 lg:py-12 bg-gradient-to-b from-green-50 to-blue-50 min-h-screen">
-      <div className="max-w-xl sm:max-w-3xl lg:max-w-4xl mx-auto bg-white p-4 sm:p-6 rounded-lg shadow space-y-6">
-        <div className="flex items-center justify-center gap-2 mb-4">
-          <Calculator className="h-12 w-12 text-green-600" />
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-green-900">
-            Калькулятор хлебных единиц
-          </h1>
-        </div>
+    <div className="max-w-md mx-auto p-4 space-y-4">
+      <h1 className="text-2xl font-bold">Калькулятор ХЕ</h1>
 
-        {items.map((item) => (
-          <div key={item.id} className="flex flex-col sm:flex-row items-center gap-2">
-            <div className="flex-1 search-wrapper">
-              <Input
-                value={item.name}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  updateItem(item.id, { name: e.target.value });
+      <div className="space-y-2">
+        <label className="block font-medium">Название продукта</label>
+        <div className="flex gap-2">
+          <input
+            className="flex-1 border px-2 py-1 rounded"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="йогурт, хлеб…"
+          />
+          <button
+            onClick={onSearch}
+            disabled={loading}
+            className="bg-blue-600 text-white px-3 py-1 rounded"
+          >
+            {loading ? "…" : "Поиск"}
+          </button>
+        </div>
+        {suggestions.length > 0 && (
+          <ul className="border rounded max-h-40 overflow-y-auto">
+            {suggestions.map((p, i) => (
+              <li
+                key={i}
+                onClick={() => {
+                  setSelected(p);
+                  setSuggestions([]);
+                  setResult(null);
                 }}
-                placeholder="Название продукта"
-              />
-              {loading && <div className="loading">…</div>}
-              {suggestions.length > 0 && (
-                <ul className="suggestions">
-                  {suggestions.map((p) => (
-                    <li key={p.code} onClick={() => selectProduct(p, item.id)}>
-                      {p.product_name}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <Input
-              value={item.weight}
-              onChange={(e) => updateItem(item.id, { weight: e.target.value })}
-              placeholder="Вес (г)"
-              type="number"
-              className="w-24"
-            />
-
-            <Button
-              onClick={() => removeItem(item.id)}
-              className="remove-btn"
-            >
-              Удалить
-            </Button>
-          </div>
-        ))}
-
-        <Button onClick={addItem} className="add-btn">
-          + Добавить продукт
-        </Button>
-
-        <div className="total mt-6 text-lg text-right">
-          Итого ХЕ: <strong>{Math.round(totalBU * 2) / 2}</strong>
-        </div>
+                className="px-2 py-1 hover:bg-blue-50 cursor-pointer"
+              >
+                {p.name} — {p.nutriments.carbohydrates_100g} g/100 g
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      {selected && (
+        <>
+          <div>
+            <strong>Выбрано:</strong> {selected.name} (
+            {selected.nutriments.carbohydrates_100g} g/100 g)
+          </div>
+
+          <div className="space-y-2">
+            <label className="block font-medium">Вес порции, г</label>
+            <input
+              className="w-full border px-2 py-1 rounded"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="100"
+            />
+          </div>
+
+          <button
+            onClick={onCalculate}
+            className="w-full bg-green-600 text-white py-2 rounded"
+          >
+            Рассчитать ХЕ
+          </button>
+        </>
+      )}
+
+      {result !== null && (
+        <div className="text-center mt-4 text-xl">
+          <strong>{result.toFixed(2)}</strong> ХЕ
+        </div>
+      )}
     </div>
   );
 }

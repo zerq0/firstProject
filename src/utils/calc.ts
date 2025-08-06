@@ -1,17 +1,12 @@
-// src/utils/calc.ts
 /**
- * @param weight — вес порции в граммах
- * @param carbs100g — углеводы на 100 г
- * @param fiber100g — клетчатка на 100 г (необязательный)
- * @param gramsPerBU — сколько грамм чистых углеводов в 1 ХЕ
+ * Считает хлебные единицы:
+ * 1 ХЕ = 12 г углеводов
+ * @param weightGrams — вес порции в граммах
+ * @param carbsPer100g — кол-во углеводов на 100 г
  */
 export function calculateBreadUnits(
-  weight: number,
-  carbs100g: number,
-  fiber100g = 0,
-  gramsPerBU = 12
+  weightGrams: number,
+  carbsPer100g: number
 ): number {
-  const netCarbs = carbs100g - fiber100g;
-  const carbsInPortion = (netCarbs * weight) / 100;
-  return Math.round((carbsInPortion / gramsPerBU) * 2) / 2; // округление до 0.5
+  return (weightGrams * carbsPer100g) / 100 / 12;
 }
