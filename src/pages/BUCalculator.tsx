@@ -1,4 +1,3 @@
-// src/pages/BUCalculator.tsx
 import React, { useState } from "react";
 import { fetchProductByName, Product } from "../utils/api";
 import { calculateBreadUnits }         from "../utils/calc";
@@ -25,7 +24,7 @@ export default function BUCalculator() {
     setLoading(true);
     try {
       const prods = await fetchProductByName(query);
-      // исключаем продукты с 0 г углеводов и берём первые 10
+      // Шаг 1: отсеять нулевые углеводы, шаг 2: взять первые 10
       setSuggestions(
         prods
           .filter(p => (p.nutriments.carbohydrates_100g ?? 0) > 0)
@@ -72,7 +71,7 @@ export default function BUCalculator() {
     <div className="max-w-md mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold text-center">Калькулятор ХЕ</h1>
 
-      {/* Поиск продукта */}
+      {/* 1) Поиск */}
       <div className="space-y-2">
         <label className="block font-medium">Название продукта</label>
         <div className="flex gap-2">
@@ -101,7 +100,7 @@ export default function BUCalculator() {
         )}
       </div>
 
-      {/* Выбранный продукт и ввод граммовки */}
+      {/* 2) Ввод граммовки и добавление */}
       {selected && (
         <div className="space-y-2 p-4 border rounded bg-gray-50">
           <div>
@@ -114,19 +113,25 @@ export default function BUCalculator() {
             placeholder="Вес порции, г"
             type="number"
           />
-          <Button onClick={onAdd} className="w-full bg-green-600 hover:bg-green-700 text-white">
+          <Button
+            onClick={onAdd}
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+          >
             Добавить
           </Button>
         </div>
       )}
 
-      {/* Список добавленных продуктов */}
+      {/* 3) Список и итог */}
       {items.length > 0 && (
         <div className="space-y-2">
           <h2 className="font-semibold">Текущие продукты</h2>
           <ul className="space-y-1">
             {items.map(i => (
-              <li key={i.id} className="flex justify-between items-center border p-2 rounded">
+              <li
+                key={i.id}
+                className="flex justify-between items-center border p-2 rounded"
+              >
                 <div>
                   {i.product.name}: {i.weight} г → {i.bu.toFixed(2)} ХЕ
                 </div>

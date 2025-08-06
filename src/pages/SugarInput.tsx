@@ -1,245 +1,214 @@
 // src/pages/SugarInput.tsx
-import React, { useState, useEffect } from "react";
-import { supabase } from "../utils/supabaseClient";
-import { Auth } from "../components/Auth";
-import { useToast } from "../hooks/use-toast";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../utils/supabaseClient';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "../components/ui/select";
-import { TrendingUp, Plus, Trash2 } from "lucide-react";
+} from '../components/ui/select';
 
 interface Reading {
   id: string;
   user_id: string;
   glucose: number;
   time: string;
-  type: string;
+  type: 'fasting' | 'before-meal' | 'after-meal' | 'bedtime' | 'random';
   notes: string;
 }
 
-const SugarInput: React.FC = () => {
-  const { toast } = useToast();
-  const [session, setSession] = useState(false);
+export default function SugarInput() {
   const [readings, setReadings] = useState<Reading[]>([]);
-  const [filter, setFilter] = useState<string>("");
+  const [glucose, setGlucose]   = useState('');
+  const [type, setType]         = useState<Reading['type'] | ''>('');
+  const [notes, setNotes]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [filter, setFilter]     = useState<'all' | Reading['type']>('all');
 
-  const [glucose, setGlucose] = useState("");
-  const [type, setType] = useState("");
-  const [notes, setNotes] = useState("");
-
-  // 1) Проверяем сессию и подписываемся на её изменения
+  // 1) Загрузка
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(!!data.session));
-    supabase.auth.onAuthStateChange((_event, sess) => {
-      setSession(!!sess);
-    });
-  }, []);
-
-  // 2) Загружаем записи сразу после логина
-  useEffect(() => {
-    if (!session) return;
     (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userId = session?.user.id;
+      if (!userId) return;
+
       const { data, error } = await supabase
-        .from("readings")
-        .select("*")
-        .order("time", { ascending: false });
+        .from<Reading, Reading>('readings')
+        .select('*')
+        .eq('user_id', userId)
+        .order('time', { ascending: false });
+
       if (error) {
-        toast({ title: "Ошибка загрузки", description: error.message, variant: "destructive" });
-      } else {
-        setReadings(data as Reading[]);
+        console.error('Ошибка загрузки:', error);
+      } else if (data) {
+        setReadings(
+          data.map((r) => ({
+            ...r,
+            time: new Date(r.time).toLocaleString(),
+          }))
+        );
       }
     })();
-  }, [session]);
+  }, []);
 
-  // Фильтруем записи
-  const displayed = filter
-    ? readings.filter((r) => r.type === filter)
-    : readings;
-
-  // 3) Добавляем новую запись
+  // 2) Добавление
   const addReading = async () => {
-    const mmol = parseFloat(glucose);
-    if (isNaN(mmol) || mmol <= 0 || !type) {
-      toast({ title: "Неверный ввод", description: "Проверьте уровень и тип замера.", variant: "destructive" });
+    const val = parseFloat(glucose.replace(',', '.'));
+    if (isNaN(val) || !type) {
+      alert('Введите уровень и выберите тип.');
       return;
     }
-    const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) {
-      toast({ title: "Неавторизован", variant: "destructive" });
+    setLoading(true);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const userId = session?.user.id;
+    if (!userId) {
+      setLoading(false);
+      alert('Сессия недоступна.');
       return;
     }
-    const newR = {
-      user_id: userData.user.id,
-      glucose: mmol,
-      time: new Date().toISOString(),
-      type,
-      notes,
-    };
-    const { error } = await supabase.from("readings").insert(newR);
+
+    const { data, error } = await supabase
+      .from<Reading, Reading>('readings')
+      .insert({ user_id: userId, glucose: val, type, notes })
+      .select()
+      .single();
+
+    setLoading(false);
     if (error) {
-      toast({ title: "Ошибка сохранения", description: error.message, variant: "destructive" });
-    } else {
-      // Предположим, что Supabase вернул нам новые данные, но чтобы сразу отобразить:
+      console.error('Ошибка добавления:', error);
+      alert('Не удалось сохранить.');
+    } else if (data) {
       setReadings((prev) => [
-        { ...newR, id: Date.now().toString() },
+        { ...data, time: new Date(data.time).toLocaleString() },
         ...prev,
       ]);
-      setGlucose("");
-      setType("");
-      setNotes("");
-      toast({ title: "Сохранено", description: `${mmol} ммоль/л добавлено` });
+      setGlucose('');
+      setType('');
+      setNotes('');
     }
   };
 
-  // 4) Удаляем запись
+  // 3) Удаление
   const deleteReading = async (id: string) => {
-    const { error } = await supabase.from("readings").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Ошибка удаления", variant: "destructive" });
-    } else {
-      setReadings((prev) => prev.filter((r) => r.id !== id));
-      toast({ title: "Запись удалена" });
-    }
+    const { error } = await supabase
+      .from<Reading, Reading>('readings')
+      .delete()
+      .eq('id', id);
+    if (error) console.error('Ошибка удаления:', error);
+    else setReadings((prev) => prev.filter((r) => r.id !== id));
   };
 
-  // Если не залогинен — показываем форму magic-link
-  if (!session) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Auth />
-      </div>
-    );
-  }
+  // Фильтрация
+  const filtered = filter === 'all'
+    ? readings
+    : readings.filter((r) => r.type === filter);
 
-  // Основной интерфейс
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 bg-gradient-to-b from-blue-50 to-green-50 min-h-screen">
-      <div className="max-w-4xl mx-auto space-y-8">
-        {/* Заголовок и фильтр */}
-        <div className="text-center space-y-2">
-          <TrendingUp className="h-12 w-12 text-blue-600 mx-auto" />
-          <h1 className="text-2xl sm:text-4xl font-bold text-blue-900">
-            Учёт сахара в крови
-          </h1>
-          <div className="flex justify-center items-center gap-2">
-            <Label>Показать:</Label>
-            <Select value={filter} onValueChange={setFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Все типы" />
-              </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200 shadow-lg">
-                <SelectItem value="">Все</SelectItem>
-                <SelectItem value="fasting">Натощак</SelectItem>
-                <SelectItem value="before-meal">Перед едой</SelectItem>
-                <SelectItem value="after-meal">После еды</SelectItem>
-                <SelectItem value="bedtime">Перед сном</SelectItem>
-                <SelectItem value="random">Произвольно</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-4">
+      <h1 className="text-3xl font-bold text-center mb-6">
+        Учёт сахара в крови
+      </h1>
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Форма */}
+        <div className="border p-4 rounded bg-white space-y-3">
+          <h2 className="font-semibold">Новая запись</h2>
+          <Input
+            placeholder="Уровень (ммоль/л), напр. 5.6"
+            value={glucose}
+            onChange={(e) => setGlucose(e.target.value)}
+          />
+          <Select value={type || 'all'} onValueChange={(v) => setType(v as Reading['type'])}>
+            <SelectTrigger><SelectValue placeholder="Тип замера" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fasting">Натощак</SelectItem>
+              <SelectItem value="before-meal">Перед едой</SelectItem>
+              <SelectItem value="after-meal">После еды</SelectItem>
+              <SelectItem value="bedtime">Перед сном</SelectItem>
+              <SelectItem value="random">В любое время</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="Примечания (опционально)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+          <Button
+            onClick={addReading}
+            disabled={loading}
+            className="w-full bg-blue-600 text-white"
+          >
+            {loading ? 'Сохраняем...' : 'Добавить'}
+          </Button>
         </div>
 
-        {/* Форма добавления */}
-        <Card className="p-4 sm:p-6">
-          <CardHeader>
-            <CardTitle>Новая запись</CardTitle>
-            <CardDescription>Добавьте текущий уровень (ммоль/л)</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="glucose">Уровень</Label>
-              <Input
-                id="glucose"
-                type="number"
-                placeholder="5.6"
-                value={glucose}
-                onChange={(e) => setGlucose(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="type">Тип замера</Label>
-              <Select value={type} onValueChange={setType}>
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Выберите тип" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border-gray-200 shadow-lg">
-                  <SelectItem value="fasting">Натощак</SelectItem>
-                  <SelectItem value="before-meal">Перед едой</SelectItem>
-                  <SelectItem value="after-meal">После еды</SelectItem>
-                  <SelectItem value="bedtime">Перед сном</SelectItem>
-                  <SelectItem value="random">Произвольно</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="notes">Примечания</Label>
-              <Input
-                id="notes"
-                placeholder="Комментарий (необязательно)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-              />
-            </div>
-            <Button
-              onClick={addReading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Plus className="h-4 w-4 mr-2" /> Сохранить
-            </Button>
-          </CardContent>
-        </Card>
+        {/* Статистика + фильтр */}
+        <div className="border p-4 rounded bg-white space-y-3">
+          <h2 className="font-semibold">Статистика</h2>
+          <p>
+            Всего записей: <strong>{readings.length}</strong>
+          </p>
+          <p>
+            Среднее:{' '}
+            <strong>
+              {readings.length
+                ? (readings.reduce((s, r) => s + r.glucose, 0) / readings.length).toFixed(1)
+                : '—'}
+              {' '}ммоль/л
+            </strong>
+          </p>
+          <h3 className="mt-4 font-medium">Фильтр по типу</h3>
+          <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+            <SelectTrigger><SelectValue placeholder="Все типы" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все</SelectItem>
+              <SelectItem value="fasting">Натощак</SelectItem>
+              <SelectItem value="before-meal">Перед едой</SelectItem>
+              <SelectItem value="after-meal">После еды</SelectItem>
+              <SelectItem value="bedtime">Перед сном</SelectItem>
+              <SelectItem value="random">В любое время</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-        {/* Список записей */}
-        <Card className="p-4 sm:p-6">
-          <CardHeader>
-            <CardTitle>Последние записи</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-            {displayed.length === 0 ? (
-              <div className="text-center text-gray-500">Нет записей</div>
-            ) : (
-              displayed.map((r) => (
-                <div
+        {/* Список */}
+        <div className="border p-4 rounded bg-white max-h-[400px] overflow-y-auto">
+          <h2 className="font-semibold mb-2">Последние записи</h2>
+          {filtered.length === 0 ? (
+            <p className="text-gray-500">Нет записей.</p>
+          ) : (
+            <ul className="space-y-2">
+              {filtered.map((r) => (
+                <li
                   key={r.id}
-                  className="flex justify-between items-center border p-3 rounded"
+                  className="flex justify-between items-start bg-gray-50 p-2 rounded"
                 >
                   <div>
-                    <div className="font-bold">{r.glucose} ммоль/л</div>
-                    <div className="text-sm text-gray-600">
-                      {new Date(r.time).toLocaleString()}
-                    </div>
-                    {r.notes && (
-                      <div className="text-sm text-gray-700 mt-1">{r.notes}</div>
-                    )}
+                    <p>
+                      <strong>{r.glucose}</strong> ммоль/л • {r.time}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {r.type} {r.notes && `• ${r.notes}`}
+                    </p>
                   </div>
-                  <Button
+                  <button
                     onClick={() => deleteReading(r.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:underline text-sm"
                   >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
+                    Удалить
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
-};
-
-export default SugarInput;
+}
