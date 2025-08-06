@@ -13,12 +13,12 @@ export function Auth() {
   const [session, setSession] = useState(false);
 
   useEffect(() => {
-    // проверяем, есть ли текущая сессия
+    // Проверяем, залогинен ли уже пользователь
     supabase.auth.getSession().then(({ data }) => {
       setSession(!!data.session);
     });
-    // подписка на изменения авторизации
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, sess) => {
+    // Подписываемся на изменения авторизации
+    const { data: listener } = supabase.auth.onAuthStateChange((_ev, sess) => {
       setSession(!!sess);
     });
     return () => {
@@ -29,6 +29,7 @@ export function Auth() {
   const handleSendMagicLink = async () => {
     if (!email) return;
     setLoading(true);
+    // Редирект сразу на страницу калькулятора
     const redirectTo = window.location.origin + "/sugar-input";
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -37,13 +38,13 @@ export function Auth() {
     setLoading(false);
 
     if (error) {
-      toast({ title: "Ошибка", description: error.message, variant: "destructive" });
+      toast({ title: "Ошибка отправки ссылки", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Ссылка отправлена", description: "Проверьте почту и кликните по magic-link." });
     }
   };
 
-  // скрываем форму, если уже залогинен
+  // Если уже залогинены — не показываем форму
   if (session) return null;
 
   return (

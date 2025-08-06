@@ -1,7 +1,7 @@
 // src/pages/BUCalculator.tsx
 import React, { useState } from "react";
 import { fetchProductByName, Product } from "../utils/api";
-import { calculateBreadUnits } from "../utils/calc";
+import { calculateBreadUnits }         from "../utils/calc";
 import { Input }  from "../components/ui/input";
 import { Button } from "../components/ui/button";
 
@@ -25,9 +25,14 @@ export default function BUCalculator() {
     setLoading(true);
     try {
       const prods = await fetchProductByName(query);
-      setSuggestions(prods.slice(0, 10));
-    } catch (e: any) {
-      alert(e.message);
+      // исключаем продукты с 0 г углеводов и берём первые 10
+      setSuggestions(
+        prods
+          .filter(p => (p.nutriments.carbohydrates_100g ?? 0) > 0)
+          .slice(0, 10)
+      );
+    } catch (err: any) {
+      alert("Ошибка поиска: " + err.message);
     }
     setLoading(false);
   };
@@ -96,7 +101,7 @@ export default function BUCalculator() {
         )}
       </div>
 
-      {/* Выбранный и ввод граммовки */}
+      {/* Выбранный продукт и ввод граммовки */}
       {selected && (
         <div className="space-y-2 p-4 border rounded bg-gray-50">
           <div>
@@ -106,7 +111,7 @@ export default function BUCalculator() {
           <Input
             value={weight}
             onChange={e => setWeight(e.target.value)}
-            placeholder="Вес порции (г)"
+            placeholder="Вес порции, г"
             type="number"
           />
           <Button onClick={onAdd} className="w-full bg-green-600 hover:bg-green-700 text-white">
@@ -115,7 +120,7 @@ export default function BUCalculator() {
         </div>
       )}
 
-      {/* Список добавленных */}
+      {/* Список добавленных продуктов */}
       {items.length > 0 && (
         <div className="space-y-2">
           <h2 className="font-semibold">Текущие продукты</h2>
@@ -125,7 +130,10 @@ export default function BUCalculator() {
                 <div>
                   {i.product.name}: {i.weight} г → {i.bu.toFixed(2)} ХЕ
                 </div>
-                <Button onClick={() => onRemove(i.id)} className="text-red-500 hover:text-red-700 p-1">
+                <Button
+                  onClick={() => onRemove(i.id)}
+                  className="text-red-500 hover:text-red-700 p-1"
+                >
                   ×
                 </Button>
               </li>
