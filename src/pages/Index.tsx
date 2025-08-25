@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Link } from "react-router-dom";
-import { Heart, Calculator, TrendingUp, AlertTriangle, Activity, Shield, Users } from "lucide-react";
+import { Heart, Calculator, TrendingUp, Activity, Shield, Users } from "lucide-react";
 
 export default function Index() {
   const features = [
@@ -20,13 +20,7 @@ export default function Index() {
       link: "/sugar-input",
       color: "text-blue-600",
     },
-    {
-      icon: AlertTriangle,
-      title: "Симптомы",
-      description: "Узнай признаки и предупреждающие сигналы диабета.",
-      link: "/symptoms",
-      color: "text-orange-600",
-    },
+    // ❌ карточка «Симптомы» удалена
   ];
 
   const stats = [
@@ -45,8 +39,7 @@ export default function Index() {
             Добро пожаловать в DiabetEasy
           </h1>
           <p className="text-base sm:text-lg text-blue-700">
-            Ваш помощник в управлении диабетом: учёт сахара, расчёт дозы
-            инсулина и отслеживание симптомов.
+            Ваш помощник в управлении диабетом: учёт сахара и расчёт дозы инсулина.
           </p>
         </div>
 

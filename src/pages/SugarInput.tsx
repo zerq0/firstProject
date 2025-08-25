@@ -17,14 +17,13 @@ interface Reading {
   id: string;
   user_id: string;
   glucose: number;
-  time: string; // уже в локальном формате
+  time: string;
   type: ReadingType;
   notes: string | null;
 }
 
 export default function SugarInput() {
   const [sessionUserId, setSessionUserId] = useState<string | null>(null);
-
   const [readings, setReadings] = useState<Reading[]>([]);
   const [glucose, setGlucose] = useState("");
   const [type, setType] = useState<ReadingType | undefined>(undefined);
@@ -32,7 +31,6 @@ export default function SugarInput() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
 
-  // Получить текущую сессию и загрузить записи
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
       const uid = data.session?.user.id ?? null;
@@ -68,11 +66,13 @@ export default function SugarInput() {
     return readings.filter((r) => r.type === filter);
   }, [readings, filter]);
 
+  // СРЕДНЕЕ ТЕПЕРЬ СЧИТАЕМ ПО ВЫБРАННОМУ ФИЛЬТРУ
   const average = useMemo(() => {
-    if (readings.length === 0) return null;
-    const sum = readings.reduce((acc, r) => acc + r.glucose, 0);
-    return +(sum / readings.length).toFixed(1);
-  }, [readings]);
+    const base = filter === "all" ? readings : filtered;
+    if (base.length === 0) return null;
+    const sum = base.reduce((acc, r) => acc + r.glucose, 0);
+    return +(sum / base.length).toFixed(1);
+  }, [readings, filtered, filter]);
 
   async function addReading() {
     const v = parseFloat(glucose.replace(",", "."));
@@ -130,7 +130,6 @@ export default function SugarInput() {
     setReadings((prev) => prev.filter((r) => r.id !== id));
   }
 
-  // если нет сессии — подсказка (на всякий)
   if (!sessionUserId) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-6">
@@ -191,15 +190,26 @@ export default function SugarInput() {
             </Button>
           </div>
 
-          {/* Статистика + фильтр */}
+          {/* Статистика */}
           <div className="border p-4 rounded-lg bg-white space-y-3">
             <h2 className="font-semibold">Статистика</h2>
+
             <p>
-              Всего записей: <strong>{readings.length}</strong>
+              Всего записей:{" "}
+              <strong>{filter === "all" ? readings.length : filtered.length}</strong>
+              {filter !== "all" && (
+                <span className="text-sm text-gray-500"> (по фильтру)</span>
+              )}
             </p>
+
             <p>
               Средний уровень:{" "}
               <strong>{average !== null ? `${average} ммоль/л` : "—"}</strong>
+              {filter !== "all" && (
+                <span className="text-sm text-gray-500">
+                  {" "}— только «{formatFilterLabel(filter)}»
+                </span>
+              )}
             </p>
 
             <h3 className="mt-4 font-medium">Фильтр по типу</h3>
@@ -221,28 +231,19 @@ export default function SugarInput() {
           {/* Список */}
           <div className="border p-4 rounded-lg bg-white">
             <h2 className="font-semibold mb-2">Последние записи</h2>
-
             {filtered.length === 0 ? (
               <div className="text-gray-500">Нет записей.</div>
             ) : (
               <ul className="space-y-2 max-h-[420px] overflow-y-auto">
                 {filtered.map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex justify-between items-start bg-gray-50 p-2 rounded"
-                  >
+                  <li key={r.id} className="flex justify-between items-start bg-gray-50 p-2 rounded">
                     <div>
-                      <div className="font-semibold">
-                        {r.glucose} ммоль/л
-                      </div>
+                      <div className="font-semibold">{r.glucose} ммоль/л</div>
                       <div className="text-sm text-gray-600">
                         {formatType(r.type)} • {r.time}
                       </div>
-                      {r.notes && (
-                        <div className="text-xs text-gray-600 mt-1">{r.notes}</div>
-                      )}
+                      {r.notes && <div className="text-xs text-gray-600 mt-1">{r.notes}</div>}
                     </div>
-
                     <button
                       onClick={() => deleteReading(r.id)}
                       className="text-red-500 hover:underline text-sm"
@@ -262,15 +263,15 @@ export default function SugarInput() {
 
 function formatType(t: ReadingType) {
   switch (t) {
-    case "fasting":
-      return "Натощак";
-    case "before-meal":
-      return "Перед едой";
-    case "after-meal":
-      return "После еды";
-    case "bedtime":
-      return "Перед сном";
-    case "random":
-      return "В любое время";
+    case "fasting": return "Натощак";
+    case "before-meal": return "Перед едой";
+    case "after-meal": return "После еды";
+    case "bedtime": return "Перед сном";
+    case "random": return "В любое время";
   }
+}
+
+function formatFilterLabel(t: FilterType) {
+  if (t === "all") return "Все";
+  return formatType(t);
 }
