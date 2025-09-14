@@ -18,7 +18,7 @@ interface Reading {
   id: string;
   user_id: string;
   glucose: number;
-  time: string;
+  time: string;          // уже отформатированное локальное время
   type: ReadingType;
   notes: string | null;
 }
@@ -31,6 +31,19 @@ export default function SugarInput() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterType>("all");
+
+  // единый форматтер под локальный таймзон устройства
+  const fmt = useMemo(
+    () =>
+      new Intl.DateTimeFormat("ru-RU", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    []
+  );
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }) => {
@@ -53,20 +66,21 @@ export default function SugarInput() {
         id: String(r.id),
         user_id: String(r.user_id),
         glucose: Number(r.glucose),
-        time: new Date(r.time).toLocaleString(),
+        time: fmt.format(new Date(r.time)), // локальное время
         type: r.type as ReadingType,
         notes: r.notes ?? null,
       }));
 
       setReadings(mapped);
     });
-  }, []);
+  }, [fmt]);
 
   const filtered = useMemo(() => {
     if (filter === "all") return readings;
     return readings.filter((r) => r.type === filter);
   }, [readings, filter]);
 
+  // среднее — по текущему фильтру
   const average = useMemo(() => {
     const base = filter === "all" ? readings : filtered;
     if (base.length === 0) return null;
@@ -109,7 +123,7 @@ export default function SugarInput() {
       id: String(data.id),
       user_id: String(data.user_id),
       glucose: Number(data.glucose),
-      time: new Date(data.time).toLocaleString(),
+      time: fmt.format(new Date(data.time)), // локальное время
       type: data.type as ReadingType,
       notes: data.notes ?? null,
     };
@@ -150,10 +164,11 @@ export default function SugarInput() {
           <h1 className="text-3xl font-bold text-violet-900">Учёт сахара в крови</h1>
           <HelpButton title="Как вести учёт сахара?">
             <ol className="list-decimal pl-5 space-y-1">
-              <li>Введите значение в ммоль/л (можно с запятой, например 5,6).</li>
-              <li>Выберите тип замера: натощак, перед/после еды, перед сном, любое время.</li>
+              <li>Введите значение в ммоль/л (можно 5,6 или 5.6).</li>
+              <li>Выберите тип: натощак / перед едой / после еды / перед сном / любое время.</li>
               <li>Нажмите «Добавить» — запись появится в списке справа.</li>
-              <li>Используйте фильтр, чтобы видеть среднее именно по выбранному типу.</li>
+              <li>Фильтруйте список и смотрите среднее **по текущему типу**.</li>
+              <li>Время показывается в **локальном часовом поясе вашего устройства**.</li>
             </ol>
           </HelpButton>
         </div>

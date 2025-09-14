@@ -189,9 +189,9 @@ export default function LoginOTP() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9"
-                    autoFocus
+                    className="pl-9 h-12 text-base sm:h-11 sm:text-sm"
                   />
+
                 </div>
                 <Button
                   onClick={sendCode}
