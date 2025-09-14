@@ -1,154 +1,112 @@
-import React, { useState } from "react";
-import { fetchProductByName, Product } from "../utils/api";
-import { calculateBreadUnits }         from "../utils/calc";
-import { Input }  from "../components/ui/input";
-import { Button } from "../components/ui/button";
+import React, { useMemo, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
+import { HelpButton } from "@/components/Help";
 
-interface Item {
-  id: string;
-  product: Product;
-  weight: number;
-  bu: number;
-}
+type Item = { id: string; title: string; grams: number; carbsPer100: number };
 
 export default function BUCalculator() {
-  const [query, setQuery]             = useState("");
-  const [suggestions, setSuggestions] = useState<Product[]>([]);
-  const [selected, setSelected]       = useState<Product | null>(null);
-  const [weight, setWeight]           = useState("");
-  const [items, setItems]             = useState<Item[]>([]);
-  const [loading, setLoading]         = useState(false);
+  const [items, setItems] = useState<Item[]>([]);
+  const [title, setTitle] = useState("");
+  const [grams, setGrams] = useState("");
+  const [carbsPer100, setCarbsPer100] = useState("");
 
-  const onSearch = async () => {
-    if (!query) return;
-    setLoading(true);
-    try {
-      const prods = await fetchProductByName(query);
-      // Шаг 1: отсеять нулевые углеводы, шаг 2: взять первые 10
-      setSuggestions(
-        prods
-          .filter(p => (p.nutriments.carbohydrates_100g ?? 0) > 0)
-          .slice(0, 10)
-      );
-    } catch (err: any) {
-      alert("Ошибка поиска: " + err.message);
-    }
-    setLoading(false);
-  };
-
-  const onSelect = (p: Product) => {
-    setSelected(p);
-    setSuggestions([]);
-    setWeight("");
-  };
-
-  const onAdd = () => {
-    if (!selected) return;
-    const w = parseFloat(weight);
-    if (isNaN(w) || w <= 0) {
-      alert("Неверный вес");
+  function addItem() {
+    const g = parseFloat(grams.replace(",", "."));
+    const c = parseFloat(carbsPer100.replace(",", "."));
+    if (!title.trim() || isNaN(g) || isNaN(c)) return;
+    if (c <= 0) {
+      alert("У продукта 0 г углеводов/100г — исключаем.");
       return;
     }
-    const bu = calculateBreadUnits(w, selected.nutriments.carbohydrates_100g);
-    const newItem: Item = {
-      id: `${selected.name}-${Date.now()}`,
-      product: selected,
-      weight: w,
-      bu,
-    };
-    setItems(prev => [...prev, newItem]);
-    setSelected(null);
-    setWeight("");
-  };
+    setItems((prev) => [{ id: String(Date.now()), title: title.trim(), grams: g, carbsPer100: c }, ...prev]);
+    setTitle(""); setGrams(""); setCarbsPer100("");
+  }
+  function removeItem(id: string) { setItems((prev) => prev.filter((i) => i.id !== id)); }
 
-  const onRemove = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-  };
-
-  const totalBU = items.reduce((sum, i) => sum + i.bu, 0);
+  const totalBU = useMemo(() => {
+    const sumCarbs = items.reduce((acc, i) => acc + (i.grams * i.carbsPer100 / 100), 0);
+    return +(sumCarbs / 12).toFixed(2); // 1 ХЕ = 12 г углеводов
+  }, [items]);
 
   return (
-    <div className="max-w-md mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold text-center">Калькулятор ХЕ</h1>
+    <div className="min-h-screen p-4">
+      <div className="max-w-3xl mx-auto space-y-4">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-violet-900">Калькулятор ХЕ</h1>
 
-      {/* 1) Поиск */}
-      <div className="space-y-2">
-        <label className="block font-medium">Название продукта</label>
-        <div className="flex gap-2">
+          <div className="flex gap-2">
+            {/* FatSecret CTA */}
+            <a
+              href="https://www.fatsecret.com/Diary.aspx?pa=fj"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm shadow-sm"
+              title="Открыть FatSecret в новой вкладке"
+            >
+              FatSecret <ExternalLink className="h-4 w-4" />
+            </a>
+
+            <HelpButton title="Как пользоваться калькулятором ХЕ?">
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Впиши название продукта, его граммовку и углеводы (г на 100 г).</li>
+                <li>Нажми «Добавить» — продукт появится в списке ниже.</li>
+                <li>Система посчитает индивидуальные ХЕ и общий итог (1 ХЕ = 12 г углеводов).</li>
+                <li>Нули по углеводам не добавляются, чтобы не мусорить расчёт.</li>
+                <li>Для поиска БЖУ можно перейти в FatSecret (кнопка рядом).</li>
+              </ol>
+            </HelpButton>
+          </div>
+        </div>
+
+        <div className="panel p-4 space-y-3">
           <Input
-            className="flex-1"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="йогурт, хлеб..."
+            placeholder="Название продукта"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
           />
-          <Button onClick={onSearch} disabled={loading} className="px-3">
-            {loading ? "..." : "Поиск"}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              placeholder="Граммовка, г (например 120)"
+              value={grams}
+              onChange={(e) => setGrams(e.target.value)}
+            />
+            <Input
+              placeholder="Углеводы, г на 100 г (например 60)"
+              value={carbsPer100}
+              onChange={(e) => setCarbsPer100(e.target.value)}
+            />
+          </div>
+          <Button className="btn-primary" onClick={addItem}>
+            Добавить продукт
           </Button>
         </div>
-        {suggestions.length > 0 && (
-          <ul className="border rounded max-h-40 overflow-y-auto bg-white">
-            {suggestions.map((p, i) => (
-              <li
-                key={i}
-                onClick={() => onSelect(p)}
-                className="px-2 py-1 hover:bg-blue-50 cursor-pointer"
-              >
-                {p.name} — {p.nutriments.carbohydrates_100g} g/100 g
-              </li>
-            ))}
-          </ul>
-        )}
+
+        <div className="panel p-4">
+          <h2 className="font-semibold mb-2 text-violet-900">Список</h2>
+          {items.length === 0 ? (
+            <div className="text-slate-500">Пусто</div>
+          ) : (
+            <ul className="space-y-2">
+              {items.map((i) => (
+                <li key={i.id} className="flex justify-between items-start bg-violet-50/60 p-2 rounded">
+                  <div>
+                    <div className="font-semibold text-violet-900">{i.title}</div>
+                    <div className="text-sm text-slate-600">
+                      {i.grams} г • {i.carbsPer100} г угл/100г • ХЕ: {(i.grams * i.carbsPer100 / 1200).toFixed(2)}
+                    </div>
+                  </div>
+                  <button className="text-rose-600 text-sm hover:underline" onClick={() => removeItem(i.id)}>
+                    Удалить
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-3 font-semibold text-violet-900">Итого: {totalBU} ХЕ</div>
+        </div>
       </div>
-
-      {/* 2) Ввод граммовки и добавление */}
-      {selected && (
-        <div className="space-y-2 p-4 border rounded bg-gray-50">
-          <div>
-            <strong>Выбрано:</strong> {selected.name} (
-            {selected.nutriments.carbohydrates_100g} g/100 g)
-          </div>
-          <Input
-            value={weight}
-            onChange={e => setWeight(e.target.value)}
-            placeholder="Вес порции, г"
-            type="number"
-          />
-          <Button
-            onClick={onAdd}
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            Добавить
-          </Button>
-        </div>
-      )}
-
-      {/* 3) Список и итог */}
-      {items.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="font-semibold">Текущие продукты</h2>
-          <ul className="space-y-1">
-            {items.map(i => (
-              <li
-                key={i.id}
-                className="flex justify-between items-center border p-2 rounded"
-              >
-                <div>
-                  {i.product.name}: {i.weight} г → {i.bu.toFixed(2)} ХЕ
-                </div>
-                <Button
-                  onClick={() => onRemove(i.id)}
-                  className="text-red-500 hover:text-red-700 p-1"
-                >
-                  ×
-                </Button>
-              </li>
-            ))}
-          </ul>
-          <div className="text-right font-bold">
-            Итого: {totalBU.toFixed(2)} ХЕ
-          </div>
-        </div>
-      )}
     </div>
   );
 }

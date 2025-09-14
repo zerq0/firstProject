@@ -1,60 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Новая светлая палитра сайта: rose + indigo/violet */
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-gradient-to-b from-rose-50 via-violet-50 to-indigo-50 text-slate-900;
   }
-}
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  .dark body {
+    @apply bg-slate-950 text-slate-50;
+  }
 }
 
-body {
-   @apply m-0;
+/* Карточки/панели почище */
+@layer components {
+  .panel {
+    @apply bg-white/90 backdrop-blur border border-indigo-100 rounded-xl shadow-sm;
+  }
+  .btn-primary {
+    @apply bg-violet-600 hover:bg-violet-700 text-white;
+  }
+  .btn-ghost {
+    @apply hover:bg-violet-50 text-violet-700;
+  }
+  .link-primary {
+    @apply text-violet-700 hover:text-violet-900 underline-offset-4 hover:underline;
+  }
+}
+/* фиксируем оверлей диалогов, чтобы не был тёмным и грязным */
+[data-state="open"].dialog-overlay {
+  @apply fixed inset-0 bg-white/60 backdrop-blur-sm z-40;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+.dialog-content {
+  @apply fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white p-6 shadow-xl border border-indigo-100;
 }
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* OTP cells */
+.otp-cell {
+  @apply h-12 w-10 sm:h-14 sm:w-12 rounded-lg border border-indigo-200 bg-white text-center text-xl sm:text-2xl font-semibold text-violet-900 outline-none;
 }
-button:hover {
-  border-color: #646cff;
+.otp-cell:focus {
+  @apply border-violet-400 ring-2 ring-violet-200;
 }
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-body {
-    @apply bg-background text-foreground;
-  }

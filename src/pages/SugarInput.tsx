@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/utils/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { HelpButton } from "@/components/Help";
 import {
   Select,
   SelectTrigger,
@@ -66,7 +67,6 @@ export default function SugarInput() {
     return readings.filter((r) => r.type === filter);
   }, [readings, filter]);
 
-  // СРЕДНЕЕ ТЕПЕРЬ СЧИТАЕМ ПО ВЫБРАННОМУ ФИЛЬТРУ
   const average = useMemo(() => {
     const base = filter === "all" ? readings : filtered;
     if (base.length === 0) return null;
@@ -132,11 +132,11 @@ export default function SugarInput() {
 
   if (!sessionUserId) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-4">Учёт сахара</h1>
+      <div className="min-h-screen p-6">
+        <div className="max-w-4xl mx-auto panel p-6">
+          <h1 className="text-2xl font-bold mb-4 text-violet-900">Учёт сахара</h1>
           <p>
-            Для доступа войдите: <a className="text-blue-600 underline" href="/login">/login</a>
+            Для доступа войдите: <a className="link-primary" href="/login">/login</a>
           </p>
         </div>
       </div>
@@ -144,14 +144,24 @@ export default function SugarInput() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-green-50 p-4">
+    <div className="min-h-screen p-4">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-6 text-center">Учёт сахара в крови</h1>
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-violet-900">Учёт сахара в крови</h1>
+          <HelpButton title="Как вести учёт сахара?">
+            <ol className="list-decimal pl-5 space-y-1">
+              <li>Введите значение в ммоль/л (можно с запятой, например 5,6).</li>
+              <li>Выберите тип замера: натощак, перед/после еды, перед сном, любое время.</li>
+              <li>Нажмите «Добавить» — запись появится в списке справа.</li>
+              <li>Используйте фильтр, чтобы видеть среднее именно по выбранному типу.</li>
+            </ol>
+          </HelpButton>
+        </div>
 
         <div className="grid gap-6 md:grid-cols-3">
           {/* Форма */}
-          <div className="border p-4 rounded-lg bg-white space-y-3">
-            <h2 className="font-semibold">Новая запись</h2>
+          <div className="panel p-4 space-y-3">
+            <h2 className="font-semibold text-violet-900">Новая запись</h2>
 
             <Input
               placeholder="Уровень (ммоль/л), напр. 5.6"
@@ -181,24 +191,20 @@ export default function SugarInput() {
               onChange={(e) => setNotes(e.target.value)}
             />
 
-            <Button
-              onClick={addReading}
-              disabled={loading}
-              className="w-full bg-blue-600 text-white"
-            >
+            <Button onClick={addReading} disabled={loading} className="w-full btn-primary">
               {loading ? "Сохраняем…" : "Добавить"}
             </Button>
           </div>
 
           {/* Статистика */}
-          <div className="border p-4 rounded-lg bg-white space-y-3">
-            <h2 className="font-semibold">Статистика</h2>
+          <div className="panel p-4 space-y-3">
+            <h2 className="font-semibold text-violet-900">Статистика</h2>
 
             <p>
               Всего записей:{" "}
               <strong>{filter === "all" ? readings.length : filtered.length}</strong>
               {filter !== "all" && (
-                <span className="text-sm text-gray-500"> (по фильтру)</span>
+                <span className="text-sm text-slate-500"> (по фильтру)</span>
               )}
             </p>
 
@@ -206,7 +212,7 @@ export default function SugarInput() {
               Средний уровень:{" "}
               <strong>{average !== null ? `${average} ммоль/л` : "—"}</strong>
               {filter !== "all" && (
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-slate-500">
                   {" "}— только «{formatFilterLabel(filter)}»
                 </span>
               )}
@@ -229,24 +235,24 @@ export default function SugarInput() {
           </div>
 
           {/* Список */}
-          <div className="border p-4 rounded-lg bg-white">
-            <h2 className="font-semibold mb-2">Последние записи</h2>
+          <div className="panel p-4">
+            <h2 className="font-semibold mb-2 text-violet-900">Последние записи</h2>
             {filtered.length === 0 ? (
-              <div className="text-gray-500">Нет записей.</div>
+              <div className="text-slate-500">Нет записей.</div>
             ) : (
               <ul className="space-y-2 max-h-[420px] overflow-y-auto">
                 {filtered.map((r) => (
-                  <li key={r.id} className="flex justify-between items-start bg-gray-50 p-2 rounded">
+                  <li key={r.id} className="flex justify-between items-start bg-violet-50/60 p-2 rounded">
                     <div>
-                      <div className="font-semibold">{r.glucose} ммоль/л</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="font-semibold text-violet-900">{r.glucose} ммоль/л</div>
+                      <div className="text-sm text-slate-600">
                         {formatType(r.type)} • {r.time}
                       </div>
-                      {r.notes && <div className="text-xs text-gray-600 mt-1">{r.notes}</div>}
+                      {r.notes && <div className="text-xs text-slate-600 mt-1">{r.notes}</div>}
                     </div>
                     <button
                       onClick={() => deleteReading(r.id)}
-                      className="text-red-500 hover:underline text-sm"
+                      className="text-rose-600 hover:underline text-sm"
                     >
                       Удалить
                     </button>
@@ -273,5 +279,5 @@ function formatType(t: ReadingType) {
 
 function formatFilterLabel(t: FilterType) {
   if (t === "all") return "Все";
-  return formatType(t);
+  return formatType(t as ReadingType);
 }
